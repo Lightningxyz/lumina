@@ -1,6 +1,6 @@
 # Lumina
 
-Lumina is a Python-based experimental text search engine that focuses on retrieval transparency. It implements the BM25 scoring algorithm alongside NLTK's Porter Stemmer to retrieve relevant documents, and provides an explainability interface to demonstrate exactly how the mathematical scoring is calculated for a given query.
+Lumina is a Python-based small and experimental text search engine that focuses on retrieval transparency. It implements the BM25 scoring algorithm alongside NLTK's Porter Stemmer to retrieve relevant documents, and provides an explainability interface to demonstrate exactly how the mathematical scoring is calculated for a given query.
 
 Traditional search libraries often return results as a black box. Lumina instead explicitly computes and surfaces the Term Frequency (TF) and Inverse Document Frequency (IDF) contributions of each token in the query, presenting the data in a clean web interface.
 
