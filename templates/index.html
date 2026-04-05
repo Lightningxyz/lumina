@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumina Search</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Lumina</h1>
+            <p class="subtitle">Neural NLP powered by BM25 & Advanced Tokenization</p>
+        </header>
+
+        <div class="search-container">
+            <div class="search-wrapper">
+                <input type="text" id="searchInput" placeholder="Query the neural database..." autocomplete="off">
+            </div>
+        </div>
+
+        <div class="loading" id="loading">QUANTIZING DATA...</div>
+        <div class="results" id="resultsContainer">
+            <!-- Results injected here -->
+        </div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const loading = document.getElementById('loading');
+        
+        let debounceTimer;
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                resultsContainer.innerHTML = '';
+                return;
+            }
+
+            debounceTimer = setTimeout(() => {
+                performSearch(query);
+            }, 300);
+        });
+
+        async function performSearch(query) {
+            loading.style.display = 'block';
+            resultsContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query, top_k: 10 })
+                });
+
+                const data = await response.json();
+                renderResults(data.results);
+            } catch (err) {
+                console.error(err);
+                resultsContainer.innerHTML = '<p style="color: #ef4444;text-align:center;">An error occurred while linking to the core.</p>';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function renderResults(results) {
+            if (!results || results.length === 0) {
+                resultsContainer.innerHTML = '<p style="text-align:center; color: #a1a1aa; font-weight: 500;">No resonance found.</p>';
+                return;
+            }
+
+            let delay = 0;
+            results.forEach((res, index) => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.style.animationDelay = `${delay}ms`;
+                delay += 80;
+
+                let highlightedText = res.doc;
+                
+                // Deep highlight injection
+                res.explanation.forEach(exp => {
+                    const term = exp.term;
+                    const percent = exp.percent;
+                    // Opacity ranges from 0.2 to 1.0 based on percentage
+                    const opacity = Math.min(1.0, Math.max(0.2, percent / 100 + 0.1));
+                    
+                    const termRegex = new RegExp(`\\b(${term}[a-z]*)\\b`, 'gi');
+                    highlightedText = highlightedText.replace(termRegex, `<span class="highlight" style="background-color: rgba(94, 106, 210, ${opacity}); border: 1px solid rgba(255,255,255, ${opacity * 0.5})">$1</span>`);
+                });
+
+                let explanationsHtml = res.explanation.map(exp => `
+                    <div class="explain-tag">
+                        <span class="t-name">${exp.term}</span>
+                        <span class="t-per">${exp.percent.toFixed(1)}%</span>
+                        <span class="t-stat">
+                            <span>BM25: ${exp.contribution.toFixed(3)}</span>
+                            <span>TF: ${exp.tf}</span>
+                        </span>
+                    </div>
+                `).join('');
+
+                card.innerHTML = `
+                    <div class="result-header">
+                        <span class="doc-id">Entity #${res.doc_id}</span>
+                        <div class="result-score">Resonance: ${res.score.toFixed(4)}</div>
+                    </div>
+                    <div class="result-text">${highlightedText}</div>
+                    
+                    <div class="stats-container">
+                        <div class="stats-title">Neural Explanation Matrix</div>
+                        <div class="tag-list">
+                            ${explanationsHtml}
+                        </div>
+                    </div>
+                `;
+
+                resultsContainer.appendChild(card);
+            });
+            
+            setTimeout(() => {
+                const cards = document.querySelectorAll('.result-card');
+                cards.forEach(c => c.style.opacity = '1');
+            }, 50);
+        }
+    </script>
+</body>
+</html>
